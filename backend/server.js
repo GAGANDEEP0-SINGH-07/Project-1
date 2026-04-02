@@ -35,9 +35,16 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+
+    // Check if origin is in the allowed list or is a Vercel subdomain
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith(".vercel.app") ||
+                      origin.includes("localhost");
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.log("CORS Blocled for origin:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
