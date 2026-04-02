@@ -27,7 +27,8 @@ const EditProfileModal = ({ open, onClose, user, onUpdate }) => {
 
   const publicKey = "public_PkixFWj6Qo2f0hZpp4FrhDTZFYw=";
   const urlEndpoint = "https://ik.imagekit.io/xgnm6rnx1";
-  const authenticationEndpoint = "http://localhost:5000/api/auth/imagekit-auth";
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const authenticationEndpoint = `${apiBase}/auth/imagekit-auth`; 
   
   const [formData, setFormData] = useState({
     bio: user?.bio || "",
