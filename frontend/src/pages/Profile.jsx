@@ -25,6 +25,7 @@ const Profile = () => {
   const [tabValue, setTabValue] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const isOwnProfile = !userId || userId === currentUser?._id;
 
@@ -73,6 +74,41 @@ const Profile = () => {
   useEffect(() => {
     fetchTabData();
   }, [fetchTabData]);
+
+  // Sync following state
+  useEffect(() => {
+    if (profileUser && currentUser) {
+      // Logic: profileUser.followers contains the IDs of those following this user
+      const isActuallyFollowing = profileUser.followers?.some(fId => 
+        (typeof fId === 'string' ? fId : fId._id) === currentUser._id
+      );
+      setIsFollowing(!!isActuallyFollowing);
+    }
+  }, [profileUser, currentUser]);
+
+  const handleFollow = async () => {
+    if (!profileUser || !currentUser) return;
+    try {
+      const res = await api.post(`/auth/follow/${profileUser._id}`);
+      setIsFollowing(res.data.isFollowing);
+      
+      // Update local profile user state to reflect new follower count/list
+      setProfileUser(prev => ({
+        ...prev,
+        followers: res.data.isFollowing 
+          ? [...(prev.followers || []), currentUser._id]
+          : (prev.followers || []).filter(id => (typeof id === 'string' ? id : id._id) !== currentUser._id)
+      }));
+
+      // Refresh current user in context to update their "following" list
+      refreshUser();
+      
+      toast.success(res.data.isFollowing ? `Following ${profileUser.username}` : `Unfollowed ${profileUser.username}`);
+    } catch (err) {
+      console.error("Follow error:", err);
+      toast.error("Failed to update follow status");
+    }
+  };
 
   const handleProfileUpdate = (updatedUser) => {
     setProfileUser(updatedUser);
@@ -255,16 +291,25 @@ const Profile = () => {
                     <Button 
                       variant="contained"
                       size="small"
+                      onClick={handleFollow}
                       sx={{ 
                         borderRadius: 5, 
                         textTransform: "none", 
                         fontWeight: 700,
-                        bgcolor: mode === "dark" ? "#63b0ff" : "#2563eb",
-                        color: "#fff",
-                        px: 3
+                        bgcolor: isFollowing 
+                          ? (mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") 
+                          : (mode === "dark" ? "#63b0ff" : "#2563eb"),
+                        color: isFollowing ? "text.secondary" : "#fff",
+                        border: isFollowing ? `1px solid ${mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}` : "none",
+                        px: 3,
+                        "&:hover": {
+                          bgcolor: isFollowing 
+                            ? (mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)") 
+                            : (mode === "dark" ? "#44a0ff" : "#1d4ed8"),
+                        }
                       }}
                     >
-                      Follow
+                      {isFollowing ? "Following" : "Follow"}
                     </Button>
                   )}
                   <Button 
